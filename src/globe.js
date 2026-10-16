@@ -326,11 +326,11 @@ class HFTGlobe {
     }
   }
 
-  textW(t, size) { this.g.font = `${size}px "HFT Mono", ui-monospace, monospace`; return this.g.measureText(t).width; }
+  textW(t, size) { this.g.font = `${size}px "IBM Plex Mono", Consolas, Menlo, ui-monospace, monospace`; return this.g.measureText(t).width; }
 
   label(text, x, y, color, size, bold) {
     const g = this.g;
-    g.font = `${bold ? '600 ' : ''}${size}px "HFT Mono", ui-monospace, monospace`;
+    g.font = `${bold ? '600 ' : ''}${size}px "IBM Plex Mono", Consolas, Menlo, ui-monospace, monospace`;
     g.fillStyle = 'rgba(0,0,20,0.55)';
     const w = g.measureText(text).width;
     g.fillRect(x - 2, y - size + 1, w + 4, size + 3);

@@ -42,10 +42,10 @@ If you like the plugin, you can [buy me a coffee](https://buymeacoffee.com/ashot
 
 ## Building from source
 
-There are no dependencies. Run `python3 build.py` to write `main.js`, `styles.css` (with IBM Plex Mono embedded) and `manifest.json` to `dist/`.
+There are no dependencies. Run `python3 build.py` to write `main.js`, `styles.css` and `manifest.json` to `dist/`.
 
 ## License
 
 - Code: [MIT](LICENSE) © AshOtis
-- Font: IBM Plex Mono, under the SIL Open Font License (see `fonts/OFL.txt`)
+- Font: uses [IBM Plex Mono](https://github.com/IBM/plex) if it's installed on your computer, otherwise your Obsidian monospace font
 - Map data: Natural Earth, public domain

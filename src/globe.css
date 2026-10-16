@@ -5,7 +5,7 @@
   --g-yellow: #ffe14d; --g-blue: #6f86ff; --g-purple: #b07bff; --g-orange: #ff9b3d; --g-pink: #ff5fc8;
   background: var(--g-bg);
   color: var(--g-text);
-  font: 12px/1.5 "HFT Mono", ui-monospace, Menlo, Consolas, monospace;
+  font: 12px/1.5 "IBM Plex Mono", var(--font-monospace), ui-monospace, Menlo, Consolas, monospace;
   letter-spacing: .3px;
   box-sizing: border-box;
   container-type: inline-size;
