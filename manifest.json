@@ -1,0 +1,11 @@
+{
+  "id": "hifi-tuner",
+  "name": "Hi-Fi Tuner",
+  "version": "1.4.0",
+  "minAppVersion": "1.4.0",
+  "description": "Listen to internet radio on a wireframe globe or in a minimal text view, with focus stations, search across 50,000 stations, your own streams, presets and a sleep timer.",
+  "author": "AshOtis",
+  "isDesktopOnly": true,
+  "authorUrl": "https://github.com/AshOtis",
+  "fundingUrl": "https://buymeacoffee.com/ashotis"
+}
