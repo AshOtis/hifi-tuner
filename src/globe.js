@@ -5,6 +5,7 @@
 class HFTGlobe {
   constructor(canvas, opts = {}) {
     this.c = canvas;
+    this.opts = opts;
     this.g = canvas.getContext('2d');
     this.onPick = opts.onPick || (() => {});
     this.lines = HFTGlobe.densify(HFT_LOWPOLY);
@@ -21,12 +22,29 @@ class HFTGlobe {
     this.hover = null;
     this.t0 = performance.now();
     this.running = false;
+    this.setTint(null);
     this.bindPointer();
+  }
+
+  /* ---------- colour ----------
+   * The globe's blue can be swapped for another colour (e.g. the station's palette).
+   * tint: [r,g,b] or null for the classic blue. Cheap: just a few strings, no per-frame work. */
+  setTint(rgb) {
+    const B = rgb && rgb.length === 3 ? rgb : [90, 110, 255];
+    const m = Math.max(1, ...B), b = B.map(v => v * 255 / m);              // full brightness
+    const mix = (to, k) => b.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',');
+    const T = this.T = { acc: mix([0, 0, 0], 0), hi: mix([255, 255, 255], 0.4), lo: mix([0, 0, 0], 0.7),
+      deep: b.map(v => Math.round(v * 0.045)).join(','), sph: b.map(v => Math.round(v * 0.38)).join(','), sph2: b.map(v => Math.round(v * 0.16)).join(','), bg: b.map(v => Math.round(v * 0.18)).join(',') };
+    this.tintKey = rgb ? rgb.join(',') : '';
+    return T;
   }
 
   /* ---------- data ---------- */
 
-  setLand(arcs) { if (arcs && arcs.length) this.lines = HFTGlobe.densify(arcs); }
+  setLand(arcs, force) { if (arcs && arcs.length && (force || !this.landLocked)) this.lines = HFTGlobe.densify(arcs); }
+
+  // optional extra layers (used by the web version): { step(globe, dt, ts), under(globe, ts), over(globe, ts) }
+  addLayer(layer) { (this.layers = this.layers || []).push(layer); }
 
   setStations(list, current) {
     const seen = new Set();
@@ -117,6 +135,20 @@ class HFTGlobe {
       down = null;
     });
     this.c.addEventListener('pointerleave', () => { this.hover = null; });
+    if (this.opts && this.opts.zoom) this.bindZoom();
+  }
+
+  // optional: mouse-wheel and pinch zoom (used by the full-screen web version)
+  bindZoom() {
+    this.zoom = this.zoom || 1;
+    const clamp = z => Math.max(0.8, Math.min(2.8, z));
+    this.c.addEventListener('wheel', e => { e.preventDefault(); this.zoom = clamp(this.zoom * Math.exp(-e.deltaY * 0.001)); }, { passive: false });
+    const pts = new Map(); let base = 0, baseZoom = 1;
+    const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+    this.c.addEventListener('pointerdown', e => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { base = dist(); baseZoom = this.zoom; } });
+    this.c.addEventListener('pointermove', e => { if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2 && base) this.zoom = clamp(baseZoom * dist() / base); });
+    const up = e => { pts.delete(e.pointerId); if (pts.size < 2) base = 0; };
+    this.c.addEventListener('pointerup', up); this.c.addEventListener('pointercancel', up);
   }
 
   pick(e) {
@@ -154,6 +186,7 @@ class HFTGlobe {
   stop() { this.running = false; }
 
   step(dt, ts) {
+    for (const L of this.layers || []) if (L.step && L.step(this, dt, ts)) return;
     if (ts < this.userUntil) return;
     if (this.goalLon != null) {
       let d = ((this.goalLon - this.lon + 540) % 360) - 180;
@@ -170,7 +203,7 @@ class HFTGlobe {
   /* ---------- drawing ---------- */
 
   resize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, this.lite ? 1 : 1.5);
     const w = this.c.clientWidth, h = this.c.clientHeight;
     if (!w || !h) return false;
     if (this.c.width !== Math.round(w * dpr) || this.c.height !== Math.round(h * dpr)) {
@@ -178,21 +211,37 @@ class HFTGlobe {
     }
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w; this.h = h;
-    this.R = Math.min(w * 0.46, h * 0.44);
+    this.R = Math.min(w * 0.46, h * 0.44) * (this.zoom || 1);
     this.cx = w / 2; this.cy = h * 0.5;
     return true;
   }
 
   path(line, front) {
-    const g = this.g;
+    const g = this.g, V = line._v || HFTGlobe.vectors(line), n = V.length / 3;
+    const D = Math.PI / 180, l0 = this.lon * D, p0 = this.lat * D;
+    const cl = Math.cos(l0), sl = Math.sin(l0), cp = Math.cos(p0), sp = Math.sin(p0);
+    const { cx, cy, R } = this;
     let pen = false;
-    for (const [lon, lat] of line) {
-      const [x, y, z] = this.view(lat, lon);
+    for (let i = 0; i < n; i++) {
+      const vx = V[i * 3], vy = V[i * 3 + 1], vz = V[i * 3 + 2];
+      const X = vx * cl + vy * sl, Y = -vx * sl + vy * cl;
+      const z = vz * sp + X * cp;
       if ((z > 0) === front) {
-        const sx = this.cx + x * this.R, sy = this.cy - y * this.R;
+        const sx = cx + Y * R, sy = cy - (vz * cp - X * sp) * R;
         if (pen) g.lineTo(sx, sy); else { g.moveTo(sx, sy); pen = true; }
       } else pen = false;
     }
+  }
+
+  // earth-frame unit vectors for a [lon, lat] polyline, cached on the line
+  static vectors(line) {
+    const D = Math.PI / 180, V = new Float32Array(line.length * 3);
+    for (let i = 0; i < line.length; i++) {
+      const p = line[i][1] * D, l = line[i][0] * D, c = Math.cos(p);
+      V[i * 3] = c * Math.cos(l); V[i * 3 + 1] = c * Math.sin(l); V[i * 3 + 2] = Math.sin(p);
+    }
+    line._v = V;
+    return V;
   }
 
   stroke(lines, front, style, width) {
@@ -203,35 +252,45 @@ class HFTGlobe {
   }
 
   draw(ts) {
+    const t0 = performance.now();
+    this.drawFrame(ts);
+    // slow machine? keep an average of frame cost and drop the costly extras if it runs high
+    const ms = performance.now() - t0;
+    this.cost = this.cost == null ? ms : this.cost * 0.95 + ms * 0.05;
+    if (!this.lite && this.cost > 9) this.lite = true;
+  }
+
+  drawFrame(ts) {
     if (!this.resize()) return;
     const g = this.g, { w, h, cx, cy, R } = this;
     const lvl = this.playing ? this.level : 0;
 
     // backdrop
     const bg = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, '#05082e'); bg.addColorStop(1, '#00000c');
+    bg.addColorStop(0, `rgb(${this.T.bg})`); bg.addColorStop(1, `rgb(${this.T.deep})`);
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
 
     // atmosphere + sphere
     const halo = g.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
-    halo.addColorStop(0, `rgba(70,90,255,${0.28 + lvl * 0.25})`); halo.addColorStop(1, 'rgba(70,90,255,0)');
+    halo.addColorStop(0, `rgba(${this.T.acc},${0.28 + lvl * 0.25})`); halo.addColorStop(1, `rgba(${this.T.acc},0)`);
     g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.18, 0, Math.PI * 2); g.fill();
     const sph = g.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
-    sph.addColorStop(0, '#0b1460'); sph.addColorStop(1, '#030728');
+    sph.addColorStop(0, `rgb(${this.T.sph})`); sph.addColorStop(1, `rgb(${this.T.sph2})`);
     g.fillStyle = sph; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
 
     // back hemisphere (see-through mesh)
-    this.stroke(this.grid, false, 'rgba(90,110,255,0.06)', 1);
-    this.stroke(this.lines, false, 'rgba(110,125,255,0.14)', 1);
+    this.stroke(this.grid, false, `rgba(${this.T.acc},0.06)`, 1);
+    if (!this.lite) this.stroke(this.lines, false, `rgba(${this.T.acc},0.14)`, 1);
 
     // front grid + coast glow
-    this.stroke(this.grid, true, 'rgba(90,110,255,0.20)', 1);
-    this.stroke(this.lines, true, `rgba(80,100,255,${0.22 + lvl * 0.2})`, 4);
-    this.stroke(this.lines, true, 'rgba(150,165,255,0.95)', 1.1);
+    this.stroke(this.grid, true, `rgba(${this.T.acc},0.20)`, 1);
+    if (!this.lite) this.stroke(this.lines, true, `rgba(${this.T.acc},${0.22 + lvl * 0.2})`, 4);
+    this.stroke(this.lines, true, `rgba(${this.T.hi},0.95)`, 1.1);
+    for (const L of this.layers || []) if (L.under) L.under(this, ts);
 
     // rim
     g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2);
-    g.strokeStyle = 'rgba(120,140,255,0.55)'; g.lineWidth = 1.2; g.stroke();
+    g.strokeStyle = `rgba(${this.T.hi},0.55)`; g.lineWidth = 1.2; g.stroke();
 
     // home marker
     const [hx, hy, hz] = this.view(this.home.lat, this.home.lon);
@@ -286,6 +345,7 @@ class HFTGlobe {
         if (!T.exact) this.label('~ COUNTRY', lx, TY + 6, 'rgba(255,225,77,0.5)', 8);
       }
     }
+    for (const Lr of this.layers || []) if (Lr.over) Lr.over(this, ts);
   }
 
   drawArc(ts, T) {
@@ -326,11 +386,11 @@ class HFTGlobe {
     }
   }
 
-  textW(t, size) { this.g.font = `${size}px "IBM Plex Mono", Consolas, Menlo, ui-monospace, monospace`; return this.g.measureText(t).width; }
+  textW(t, size) { this.g.font = `${size}px "HFT Mono", ui-monospace, monospace`; return this.g.measureText(t).width; }
 
   label(text, x, y, color, size, bold) {
     const g = this.g;
-    g.font = `${bold ? '600 ' : ''}${size}px "IBM Plex Mono", Consolas, Menlo, ui-monospace, monospace`;
+    g.font = `${bold ? '600 ' : ''}${size}px "HFT Mono", ui-monospace, monospace`;
     g.fillStyle = 'rgba(0,0,20,0.55)';
     const w = g.measureText(text).width;
     g.fillRect(x - 2, y - size + 1, w + 4, size + 3);

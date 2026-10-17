@@ -13,6 +13,8 @@ The default **globe** view plots stations on a wireframe world map. When you tun
 - **Add URL:** play any direct stream (MP3, AAC or Ogg).
 - **Presets:** **[mem]** stores the current station, or click **+** on any list. There are commands for presets 1–6.
 - **Sleep timer** and an ASCII EQ.
+- **Station colours:** the globe takes on colours that suit the station's genre (amber for jazz, green for folk, blue for ambient). With the [Static Aurora](https://github.com/AshOtis/static-aurora) theme installed, the theme glows in the same colours. Turn off **Station colours** in settings for the classic blue globe.
+- **Takes turns:** pressing play pauses my other players (Static FM, Aurora MP3), and they stop Hi-Fi Tuner. Turn on **Play alongside other players** to mix them.
 - **Status bar** now-playing, media keys, and commands for everything. Set your own hotkeys in **Settings → Hotkeys**.
 
 ## Usage

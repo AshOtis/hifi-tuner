@@ -36,7 +36,8 @@ function mountGlobe(root, api, opts = {}) {
   // Stage: globe canvas with HUD overlays
   const stage = h('div', 'hfg-stage', null, root);
   const canvas = h('canvas', 'hfg-canvas', null, stage);
-  const globe = new HFTGlobe(canvas, { onPick: st => cmd('play', { station: st }) });
+  const globe = new HFTGlobe(canvas, { onPick: st => cmd('play', { station: st }), zoom: !!opts.zoom });
+  if (opts.onGlobe) opts.onGlobe(globe, stage);
 
   const top = h('div', 'hfg-top', null, stage);
   const sig = h('div', 'hfg-sig', null, top);
@@ -244,7 +245,18 @@ function mountGlobe(root, api, opts = {}) {
     if (r) { events(r); S = r; paint(); }
   }, 800);
 
+  // Swap the globe's blue for another colour ([r,g,b]), or null for the classic blue
+  function setTint(rgb) {
+    const key = rgb ? rgb.join(',') : '';
+    if (key === globe.tintKey) return;
+    const T = globe.setTint(rgb);
+    const scale = k => T.acc.split(',').map(v => Math.round(v * k)).join(',');
+    const vars = { '--g-acc': T.acc, '--g-hi': T.hi, '--g-deep': T.deep, '--g-pan': scale(0.157), '--g-box': scale(0.27), '--g-on': scale(0.85) };
+    for (const k in vars) rgb ? root.style.setProperty(k, vars[k]) : root.style.removeProperty(k);
+  }
+
   return {
+    setTint,
     refresh: async () => { S = await api.cmd('state'); paint(); },
     destroy: () => { stopped = true; clearInterval(poll); cancelAnimationFrame(raf); globe.stop(); }
   };
