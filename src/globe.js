@@ -3,6 +3,24 @@
  * a pulsing lock on the playing station and an animated arc from home to it. */
 
 class HFTGlobe {
+  static PALETTES = {
+    // lines: acc / hi · glow: halo · space: bg → deep · sphere: sph → sph2 · panels: pan, box, on
+    // theme: three glow colours for the Static Aurora theme
+    // text: green (stations, now playing), soft (presets), arc, yellow (labels), idle (standby lock), red (playing), purple, orange, pink
+    blue:     { acc: '90,110,255',  hi: '150,165,255', halo: '70,90,255',   bg: '5,8,46',   deep: '0,0,12', sph: '11,20,96',  sph2: '3,7,40',  pan: '4,8,40',   box: '10,16,70', on: '47,69,255',
+                green: '60,255,143',  soft: '168,255,207', arc: '120,255,180', yellow: '255,225,77',  idle: '255,210,80',  red: '255,59,107',  purple: '176,123,255', orange: '255,155,61',  pink: '255,95,200',
+                theme: '70,90,255|60,150,255|120,80,230' },
+    brown:    { acc: '214,150,80',  hi: '245,205,150', halo: '200,120,50',  bg: '34,20,9',  deep: '10,6,2', sph: '66,40,17',  sph2: '24,14,6', pan: '28,17,8',  box: '62,38,15', on: '170,100,40',
+                green: '95,215,200',  soft: '175,238,228', arc: '130,228,214', yellow: '255,200,90',  idle: '240,180,90',  red: '255,105,80',  purple: '150,190,235', orange: '255,150,70',  pink: '240,140,120',
+                theme: '214,150,80|180,95,35|120,70,30' },
+    terminal: { acc: '60,220,110',  hi: '160,255,190', halo: '40,200,90',   bg: '3,14,6',   deep: '0,0,0',  sph: '6,32,13',   sph2: '2,10,4',  pan: '0,6,2',    box: '6,40,16',  on: '30,160,75',
+                green: '120,255,160', soft: '200,255,215', arc: '170,255,195', yellow: '255,200,70',  idle: '210,190,80',  red: '255,90,80',   purple: '110,210,150', orange: '255,176,0',   pink: '150,240,190',
+                theme: '40,210,100|20,150,80|120,230,160' },
+    aurora:   { acc: '240,110,170', hi: '255,190,215', halo: '160,90,230',  bg: '32,10,34', deep: '8,4,12', sph: '62,22,70',  sph2: '20,8,30', pan: '22,8,28',  box: '62,22,62', on: '200,65,140',
+                green: '255,205,150', soft: '255,228,205', arc: '255,190,160', yellow: '255,185,92',  idle: '240,170,110', red: '255,85,140',  purple: '190,145,255', orange: '255,150,80',  pink: '255,125,200',
+                theme: '240,110,170|160,90,230|255,170,90' }
+  };
+
   constructor(canvas, opts = {}) {
     this.c = canvas;
     this.opts = opts;
@@ -22,21 +40,17 @@ class HFTGlobe {
     this.hover = null;
     this.t0 = performance.now();
     this.running = false;
-    this.setTint(null);
+    this.setPalette('blue');
     this.bindPointer();
   }
 
-  /* ---------- colour ----------
-   * The globe's blue can be swapped for another colour (e.g. the station's palette).
-   * tint: [r,g,b] or null for the classic blue. Cheap: just a few strings, no per-frame work. */
-  setTint(rgb) {
-    const B = rgb && rgb.length === 3 ? rgb : [90, 110, 255];
-    const m = Math.max(1, ...B), b = B.map(v => v * 255 / m);              // full brightness
-    const mix = (to, k) => b.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',');
-    const T = this.T = { acc: mix([0, 0, 0], 0), hi: mix([255, 255, 255], 0.4), lo: mix([0, 0, 0], 0.7),
-      deep: b.map(v => Math.round(v * 0.045)).join(','), sph: b.map(v => Math.round(v * 0.38)).join(','), sph2: b.map(v => Math.round(v * 0.16)).join(','), bg: b.map(v => Math.round(v * 0.18)).join(',') };
-    this.tintKey = rgb ? rgb.join(',') : '';
-    return T;
+  /* ---------- colour ways ----------
+   * Same globe, different paint. Each palette is a set of "r,g,b" strings. */
+  setPalette(name) {
+    const P = HFTGlobe.PALETTES[name] ? name : 'blue';
+    this.T = HFTGlobe.PALETTES[P];
+    this.palette = P;
+    return this.T;
   }
 
   /* ---------- data ---------- */
@@ -272,7 +286,7 @@ class HFTGlobe {
 
     // atmosphere + sphere
     const halo = g.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
-    halo.addColorStop(0, `rgba(${this.T.acc},${0.28 + lvl * 0.25})`); halo.addColorStop(1, `rgba(${this.T.acc},0)`);
+    halo.addColorStop(0, `rgba(${this.T.halo},${0.28 + lvl * 0.25})`); halo.addColorStop(1, `rgba(${this.T.halo},0)`);
     g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 1.18, 0, Math.PI * 2); g.fill();
     const sph = g.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.1, cx, cy, R);
     sph.addColorStop(0, `rgb(${this.T.sph})`); sph.addColorStop(1, `rgb(${this.T.sph2})`);
@@ -297,8 +311,8 @@ class HFTGlobe {
     const HX = cx + hx * R, HY = cy - hy * R;
     if (hz > 0) {
       g.beginPath(); g.moveTo(HX, HY - 6); g.lineTo(HX + 5, HY + 4); g.lineTo(HX - 5, HY + 4); g.closePath();
-      g.strokeStyle = '#3cff8f'; g.lineWidth = 1.4; g.stroke();
-      this.label('YOU', HX + 8, HY + 3, 'rgba(60,255,143,0.8)', 9);
+      g.strokeStyle = `rgb(${this.T.green})`; g.lineWidth = 1.4; g.stroke();
+      this.label('YOU', HX + 8, HY + 3, `rgba(${this.T.green},0.8)`, 9);
     }
 
     // station blips
@@ -308,9 +322,9 @@ class HFTGlobe {
       const sx = cx + x * R, sy = cy - y * R;
       const isT = this.target && s.st.id === this.target.st.id;
       if (isT) continue;
-      g.fillStyle = this.hover === s ? '#ffffff' : 'rgba(60,255,143,0.85)';
+      g.fillStyle = this.hover === s ? '#ffffff' : `rgba(${this.T.green},0.85)`;
       g.fillRect(sx - 1.5, sy - 1.5, 3, 3);
-      g.fillStyle = 'rgba(60,255,143,0.18)';
+      g.fillStyle = `rgba(${this.T.green},0.18)`;
       g.fillRect(sx - 3.5, sy - 3.5, 7, 7);
     }
     if (this.hover && (!this.target || this.hover.st.id !== this.target.st.id)) {
@@ -326,7 +340,7 @@ class HFTGlobe {
       this.drawArc(ts, T);
       if (tz > 0) {
         const pulse = (ts % 1600) / 1600;
-        const col = this.playing ? '255,59,107' : '255,210,80';
+        const col = this.playing ? this.T.red : this.T.idle;
         for (let k = 0; k < 2; k++) {
           const p = (pulse + k * 0.5) % 1;
           g.beginPath(); g.arc(TX, TY, 4 + p * (18 + lvl * 26), 0, Math.PI * 2);
@@ -341,8 +355,8 @@ class HFTGlobe {
         }
         const tag = this.playing ? 'SIGNAL LOCKED' : 'STANDBY';
         const lx = TX + 18 > w - 120 ? TX - 18 - this.textW(tag, 11) : TX + 18;
-        this.label(tag, lx, TY - 8, this.playing ? '#ffe14d' : 'rgba(255,225,77,0.6)', 11, true);
-        if (!T.exact) this.label('~ COUNTRY', lx, TY + 6, 'rgba(255,225,77,0.5)', 8);
+        this.label(tag, lx, TY - 8, this.playing ? `rgb(${this.T.yellow})` : `rgba(${this.T.yellow},0.6)`, 11, true);
+        if (!T.exact) this.label('~ COUNTRY', lx, TY + 6, `rgba(${this.T.yellow},0.5)`, 8);
       }
     }
     for (const Lr of this.layers || []) if (Lr.over) Lr.over(this, ts);
@@ -369,7 +383,7 @@ class HFTGlobe {
     g.save();
     g.setLineDash([5, 4]);
     g.lineDashOffset = -ts / 40;
-    for (const [style, width] of [['rgba(60,255,143,0.25)', 3.5], ['rgba(120,255,180,0.95)', 1.2]]) {
+    for (const [style, width] of [[`rgba(${this.T.green},0.25)`, 3.5], [`rgba(${this.T.arc},0.95)`, 1.2]]) {
       g.beginPath();
       let pen = false;
       for (const [x, y, vis] of pts) {

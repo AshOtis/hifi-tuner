@@ -2,7 +2,7 @@
 .hfg {
   --g-acc: 90,110,255; --g-hi: 150,165,255; --g-deep: 0,0,12; --g-pan: 4,8,40; --g-box: 10,16,70; --g-on: 47,69,255;
   --g-bg: rgb(var(--g-deep)); --g-panel: rgba(var(--g-pan),.92); --g-line: rgba(var(--g-acc),.28);
-  --g-text: color-mix(in srgb, rgb(var(--g-hi)) 45%, #fff); --g-dim: color-mix(in srgb, rgb(var(--g-acc)) 55%, #333); --g-green: #3cff8f; --g-red: #ff3b6b;
+  --g-text: color-mix(in srgb, rgb(var(--g-hi)) 45%, #fff); --g-dim: color-mix(in srgb, rgb(var(--g-acc)) 55%, #333); --g-green: #3cff8f; --g-soft: #a8ffcf; --g-red: #ff3b6b; --g-red-rgb: 255,59,107;
   --g-yellow: #ffe14d; --g-blue: rgb(var(--g-hi)); --g-purple: #b07bff; --g-orange: #ff9b3d; --g-pink: #ff5fc8;
   background: var(--g-bg);
   color: var(--g-text);
@@ -78,8 +78,8 @@
 .hfg-list li::marker { content: none; }
 .hfg-name-row { flex: 1; min-width: 0; cursor: pointer; color: var(--g-green); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hfg-name-row:hover { color: #fff; text-shadow: 0 0 8px var(--g-green); }
-.hfg-list li.is-preset .hfg-name-row { color: #a8ffcf; }
-.hfg-list li.is-current .hfg-name-row { color: var(--g-red); text-shadow: 0 0 8px rgba(255,59,107,.7); }
+.hfg-list li.is-preset .hfg-name-row { color: var(--g-soft); }
+.hfg-list li.is-current .hfg-name-row { color: var(--g-red); text-shadow: 0 0 8px rgba(var(--g-red-rgb),.7); }
 .hfg-cc { color: var(--g-dim); font-size: 10px; width: 18px; text-align: right; }
 .hfg-acts { display: flex; gap: 8px; }
 .hfg-acts .hfg-b { color: var(--g-dim); }

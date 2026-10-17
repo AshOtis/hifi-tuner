@@ -163,11 +163,11 @@ function mountMinimal(root, api, opts = {}) {
     listKey = ''; paint();
   }
 
-  /* ---------- ASCII EQ (MFP style) ----------
-   * Columns are frequency bands, low → high. The level picks the row and glyph;
-   * a faint "·" marks a slowly falling peak. Flat "_" line when silent. */
-  const ROWS = 7, GLYPHS = ['.', '-', 'o', '*', "'", '^', '•', ':'];
-  let cells = [], cols = 0, levels = [], peaks = [], tick = 0, last = 0, busy = false, raf = 0;
+  /* ---------- ASCII EQ ----------
+   * Classic bar graph: each band is a "##" column that rises from the floor, with a "=="
+   * peak cap that hangs for a moment then falls. A flat "__" floor when silent. */
+  const ROWS = 8, BW = 2, GAP = 1;
+  let cells = [], cols = 0, bands = 0, levels = [], peaks = [], holds = [], last = 0, busy = false, raf = 0;
 
   function buildViz() {
     const probe = h('span', null, '0000000000', viz);
@@ -176,6 +176,7 @@ function mountMinimal(root, api, opts = {}) {
     const n = Math.max(16, Math.min(120, Math.floor(viz.clientWidth / cw)));
     if (n === cols) return;
     cols = n;
+    bands = Math.max(5, Math.floor((cols + GAP) / (BW + GAP)));
     viz.textContent = '';
     cells = [];
     for (let r = 0; r < ROWS; r++) {
@@ -184,8 +185,9 @@ function mountMinimal(root, api, opts = {}) {
       viz.appendChild(document.createTextNode('\n'));
       cells.push(row);
     }
-    levels = new Array(cols).fill(0);
-    peaks = new Array(cols).fill(0);
+    levels = new Array(bands).fill(0);
+    peaks = new Array(bands).fill(0);
+    holds = new Array(bands).fill(0);
   }
 
   async function frame(ts) {
@@ -196,21 +198,23 @@ function mountMinimal(root, api, opts = {}) {
     busy = true;
     try {
       buildViz();
-      const data = S.vizLive ? await api.cmd('viz', { cols }) : null;
-      tick++;
-      const R = ROWS - 1;
+      const data = S.vizLive ? await api.cmd('viz', { cols: bands }) : null;
       const grid = cells.map(r => r.map(() => [' ', '']));
-      for (let c = 0; c < cols; c++) {
-        const t = data ? Math.pow((data[c] || 0) / 255, 1.6) : 0;
-        levels[c] += (t - levels[c]) * 0.45;
-        peaks[c] = Math.max(levels[c], peaks[c] - 0.012);
-        const col = 'v' + Math.min(5, Math.floor(6 * c / cols));
-        const row = Math.round((1 - levels[c]) * R);
-        if (levels[c] < 0.03) grid[R][c] = ['_', col];
-        else {
-          grid[row][c] = [GLYPHS[(c * 5 + Math.floor(levels[c] * 12) + (tick >> 4)) % GLYPHS.length], col];
-          const pr = Math.round((1 - peaks[c]) * R);
-          if (pr < row - 1) grid[pr][c] = ['·', 'pk'];
+      const used = bands * (BW + GAP) - GAP, off = Math.floor((cols - used) / 2);
+      for (let k = 0; k < bands; k++) {
+        const t = data ? Math.pow((data[k] || 0) / 255, 1.4) : 0;
+        levels[k] += (t - levels[k]) * (t > levels[k] ? 0.6 : 0.25);
+        if (levels[k] >= peaks[k]) { peaks[k] = levels[k]; holds[k] = 12; }
+        else if (holds[k] > 0) holds[k]--;
+        else peaks[k] = Math.max(levels[k], peaks[k] - 0.02);
+        const col = 'v' + Math.min(5, Math.floor(6 * k / bands));
+        const fill = Math.round(levels[k] * ROWS), cap = Math.round(peaks[k] * ROWS);
+        for (let j = 0; j < BW; j++) {
+          const c = off + k * (BW + GAP) + j;
+          if (c < 0 || c >= cols) continue;
+          if (fill <= 0) { grid[ROWS - 1][c] = ['_', col]; continue; }
+          for (let r = 0; r < fill; r++) grid[ROWS - 1 - r][c] = [r === fill - 1 ? ':' : '#', col];
+          if (cap > fill && cap <= ROWS) grid[ROWS - cap][c] = ['=', 'pk'];
         }
       }
       for (let r = 0; r < ROWS; r++) for (let c = 0; c < cols; c++) {

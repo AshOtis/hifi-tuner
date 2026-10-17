@@ -245,18 +245,18 @@ function mountGlobe(root, api, opts = {}) {
     if (r) { events(r); S = r; paint(); }
   }, 800);
 
-  // Swap the globe's blue for another colour ([r,g,b]), or null for the classic blue
-  function setTint(rgb) {
-    const key = rgb ? rgb.join(',') : '';
-    if (key === globe.tintKey) return;
-    const T = globe.setTint(rgb);
-    const scale = k => T.acc.split(',').map(v => Math.round(v * k)).join(',');
-    const vars = { '--g-acc': T.acc, '--g-hi': T.hi, '--g-deep': T.deep, '--g-pan': scale(0.157), '--g-box': scale(0.27), '--g-on': scale(0.85) };
-    for (const k in vars) rgb ? root.style.setProperty(k, vars[k]) : root.style.removeProperty(k);
+  // Colour way: blue (classic), brown, terminal or aurora. Blue uses the stylesheet's own values.
+  function setPalette(name) {
+    const T = globe.setPalette(name);
+    const c = k => `rgb(${T[k]})`;
+    const vars = { '--g-acc': T.acc, '--g-hi': T.hi, '--g-deep': T.deep, '--g-pan': T.pan, '--g-box': T.box, '--g-on': T.on, '--g-red-rgb': T.red,
+      '--g-green': c('green'), '--g-soft': c('soft'), '--g-yellow': c('yellow'), '--g-red': c('red'), '--g-purple': c('purple'), '--g-orange': c('orange'), '--g-pink': c('pink') };
+    for (const k in vars) globe.palette === 'blue' ? root.style.removeProperty(k) : root.style.setProperty(k, vars[k]);
   }
+  setPalette(opts.palette);
 
   return {
-    setTint,
+    setPalette,
     refresh: async () => { S = await api.cmd('state'); paint(); },
     destroy: () => { stopped = true; clearInterval(poll); cancelAnimationFrame(raf); globe.stop(); }
   };

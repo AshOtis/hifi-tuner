@@ -25,8 +25,7 @@ class HFTView extends ItemView {
     const root = this.contentEl.createDiv({ cls: 'is-tall' });
     this.ui = minimal
       ? mountMinimal(root, api, { openUrl, headExtras: [{ label: '[globe]', title: 'Switch to the globe look', onClick: () => this.plugin.setLook('globe') }] })
-      : mountGlobe(root, api, { openUrl, footExtras: [{ label: '[minimal]', title: 'Switch to the minimal look', onClick: () => this.plugin.setLook('minimal') }] });
-    if (this.ui.setTint) this.ui.setTint(this.plugin.tint || null);
+      : mountGlobe(root, api, { openUrl, palette: engine.d.palette, footExtras: [{ label: '[minimal]', title: 'Switch to the minimal look', onClick: () => this.plugin.setLook('minimal') }] });
   }
 
   async onClose() { if (this.ui) this.ui.destroy(); }
@@ -86,60 +85,20 @@ class HiFiTunerPlugin extends Plugin {
     this.wasOn = now;
   }
 
-  // Station colours for the Static Aurora theme: chosen from the station's genre tags,
-  // nudged per station so neighbouring stations of the same genre still look different.
-  stationColours(st) {
-    const tags = ((st.tags || '') + ' ' + (st.name || '')).toLowerCase();
-    const G = [
-      [/ambient|drone|space|sleep|deep|meditat|chillout/, [[56, 90, 200], [30, 160, 170], [110, 70, 190]]],
-      [/jazz|lounge|soul|blues|swing/, [[214, 140, 50], [150, 40, 60], [120, 70, 30]]],
-      [/techno|house|electro|edm|trance|dance|club|synth/, [[220, 50, 170], [40, 180, 230], [110, 50, 200]]],
-      [/classic|baroque|orchestr|piano|opera/, [[226, 190, 120], [180, 150, 110], [120, 90, 70]]],
-      [/rock|metal|punk|grunge|indie/, [[220, 60, 40], [240, 130, 30], [90, 30, 30]]],
-      [/folk|country|acoustic|bluegrass|celtic/, [[120, 160, 70], [190, 140, 70], [90, 70, 40]]],
-      [/chill|mellow|lofi|lo-fi|downtempo|easy/, [[240, 160, 130], [170, 130, 210], [110, 90, 140]]],
-      [/reggae|latin|world|afro|salsa|bossa/, [[60, 170, 80], [240, 200, 50], [200, 70, 40]]],
-      [/news|talk|speech|sport/, [[150, 160, 180], [90, 110, 150], [60, 70, 90]]],
-      [/eclectic|live|freeform|variety/, [[236, 72, 153], [249, 115, 22], [180, 83, 9]]]
-    ];
-    let cols = null;
-    for (const [re, c] of G) if (re.test(tags)) { cols = c; break; }
-    let h = 0; for (const ch of String(st.id || st.name || '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
-    if (!cols) {   // unknown genre: a pleasant palette from the station's name
-      const hue = Math.abs(h) % 360, hsl = (hh, s, l) => { const a = s * Math.min(l, 1 - l), f = n => { const k = (n + hh / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return [f(0), f(8), f(4)]; };
-      cols = [hsl(hue, 0.65, 0.55), hsl((hue + 40) % 360, 0.6, 0.5), hsl((hue + 200) % 360, 0.45, 0.35)];
-    }
-    const j = ((Math.abs(h) % 21) - 10) / 100;   // ±10% per station
-    return cols.map(c => c.map(v => Math.max(0, Math.min(255, Math.round(v * (1 + j))))));
-  }
-
-  // The globe look takes the station's main colour too (only repaints when it changes)
-  setTint(rgb) {
-    const key = rgb ? rgb.join(',') : '';
-    if (key === this.tintKey) return;
-    this.tintKey = key; this.tint = rgb;
-    for (const leaf of this.app.workspace.getLeavesOfType(HFT_VIEW)) {
-      const ui = leaf.view instanceof HFTView && leaf.view.ui;
-      if (ui && ui.setTint) ui.setTint(rgb);
-    }
-  }
-
-  // Writes only when the station changes: every write restyles the whole Obsidian window
+  // The theme glows in the globe's colour way. Writes only when that changes: every write restyles the whole Obsidian window
   syncTheme() {
     const body = document.body, e = this.engine, vars = ['--sa-c1', '--sa-c2', '--sa-c3'];
     const on = e.d.themeSync !== false && e.audio && e.station;
-    if (e.d.themeSync === false) this.setTint(null);
-    else if (e.audio && e.station) this.setTint(this.stationColours(e.station)[0]);
     if (!on) {
       // paused or stopped: keep the last colours on the theme; only clear when syncing is switched off
       if (e.d.themeSync === false && this.synced) { delete body.dataset.saOwner; for (const v of vars) body.style.removeProperty(v); this.synced = false; this.syncKey = ''; }
       return;
     }
     if (!this.mayColourTheme('hifi-tuner')) return;
-    const key = e.station.id || e.station.url;
-    if (key === this.syncKey && this.synced) return;
-    const cols = this.stationColours(e.station);
-    cols.forEach((c, i) => body.style.setProperty(vars[i], `rgb(${c.join(', ')})`));
+    const P = HFTGlobe.PALETTES[e.d.palette] ? e.d.palette : 'blue';
+    if (P === this.syncKey && this.synced) return;
+    HFTGlobe.PALETTES[P].theme.split('|').forEach((c, i) => body.style.setProperty(vars[i], `rgb(${c})`));
+    const key = P;
     this.syncKey = key; this.synced = true;
   }
 
@@ -201,8 +160,15 @@ class HFTSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('EQ / signal level')
       .setDesc('Level meter (minimal: ASCII EQ, globe: signal boxes and pulse). Works on stations that allow it (SomaFM does).')
       .addToggle(t => t.setValue(e.d.eq).onChange(v => { e.d.eq = v; e.save(); }));
-    new Setting(containerEl).setName('Station colours')
-      .setDesc('While a station plays, the globe and the Static Aurora theme take on colours that suit its genre. Turn off for the classic blue globe.')
+    new Setting(containerEl).setName('Globe colours')
+      .setDesc('Colour way for the globe look.')
+      .addDropdown(dd => dd.addOption('blue', 'Blue').addOption('brown', 'Brown').addOption('terminal', 'Terminal').addOption('aurora', 'Aurora')
+        .setValue(e.d.palette || 'blue').onChange(v => {
+          e.d.palette = v; e.save(); this.plugin.syncTheme();
+          for (const leaf of this.app.workspace.getLeavesOfType(HFT_VIEW)) { const ui = leaf.view instanceof HFTView && leaf.view.ui; if (ui && ui.setPalette) ui.setPalette(v); }
+        }));
+    new Setting(containerEl).setName('Colour the Static Aurora theme')
+      .setDesc('While a station plays, the Static Aurora theme glows in the same colours as the globe. Has no effect with other themes.')
       .addToggle(t => t.setValue(e.d.themeSync !== false).onChange(v => { e.d.themeSync = v; e.save(); this.plugin.syncTheme(); }));
     new Setting(containerEl).setName('Play alongside other players')
       .setDesc('Off: starting Static FM, Aurora MP3 or MFP Player stops the radio, and the other way round. On: let them play together.')
