@@ -1,10 +1,10 @@
 # Hi-Fi Tuner
 
-Listen to internet radio in your Obsidian sidebar, on a wireframe globe or in a minimal text view.
+Listen to internet radio in your Obsidian sidebar, on a wireframe globe, in a minimal text view or in the soft Aurora look.
 
 ![Hi-Fi Tuner globe view](docs/screenshot.png)
 
-The default **globe** view plots stations on a wireframe world map. When you tune in, the globe turns to face the station and draws a signal arc from your rough location. Your location comes from your time zone, never GPS. For something calmer, switch to the **minimal** text view.
+The default **globe** view plots stations on a wireframe world map. When you tune in, the globe turns to face the station and draws a signal arc from your rough location. Your location comes from your time zone, never GPS. For something calmer, switch to the **minimal** text view, or to the **Aurora** look: soft glass panels, SomaFM's station artwork and slowly drifting glows. With [Aurora Clock](https://github.com/AshOtis/Aurora-Clock) installed, the glows follow the time of day; without it, they're northern-lights green and violet. In the Aurora look the radio leaves the Static Aurora theme to Aurora Clock too, so the player and your theme always match.
 
 ## Features
 
@@ -26,7 +26,7 @@ Click the radio icon in the left ribbon, or run **Hi-Fi Tuner: Open tuner** from
 
 Hi-Fi Tuner is a radio, so it needs the internet. It connects to:
 
-- `api.somafm.com` for SomaFM's channel list, playlists and now-playing info.
+- `api.somafm.com` for SomaFM's channel list, playlists and now-playing info, and SomaFM's station artwork in the Aurora look.
 - `cdn.jsdelivr.net` for the Natural Earth coastline outline (world-atlas, public domain), once per session. This is map data, not code.
 - `*.api.radio-browser.info` for station search. When you play a station you found there, it also hits the directory's anonymous click counter.
 - The radio streams you choose to play.

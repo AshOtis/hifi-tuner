@@ -35,6 +35,7 @@ function hftSomaStation(ch) {
     support: 'https://somafm.com/support/',
     tags: (ch.genre || 'ambient').replace(/\|/g, ', '),
     description: ch.description || '',
+    image: (ch.largeimage || ch.image || '').replace(/^http:/, 'https:'),
     codec: 'MP3', bitrate: 128, country: 'US', source: 'soma'
   };
 }

@@ -20,12 +20,20 @@ class HFTView extends ItemView {
     const engine = this.plugin.engine;
     const api = { cmd: (n, a) => engine.command(n, a || {}) };
     const openUrl = u => window.open(u);
-    const minimal = engine.d.look === 'minimal';
-    this.contentEl.toggleClass('is-minimal', minimal);
+    const look = ['minimal', 'aurora'].includes(engine.d.look) ? engine.d.look : 'globe';
+    this.contentEl.toggleClass('is-minimal', look === 'minimal');
+    this.contentEl.toggleClass('is-aurora', look === 'aurora');
     const root = this.contentEl.createDiv({ cls: 'is-tall' });
-    this.ui = minimal
-      ? mountMinimal(root, api, { openUrl, headExtras: [{ label: '[globe]', title: 'Switch to the globe look', onClick: () => this.plugin.setLook('globe') }] })
-      : mountGlobe(root, api, { openUrl, palette: engine.d.palette, footExtras: [{ label: '[minimal]', title: 'Switch to the minimal look', onClick: () => this.plugin.setLook('minimal') }] });
+    const go = to => () => this.plugin.setLook(to);
+    if (look === 'minimal') this.ui = mountMinimal(root, api, { openUrl, headExtras: [
+      { label: '[globe]', title: 'Switch to the globe look', onClick: go('globe') },
+      { label: '[aurora]', title: 'Switch to the Aurora look', onClick: go('aurora') }] });
+    else if (look === 'aurora') this.ui = mountAurora(root, api, { openUrl, footExtras: [
+      { label: 'Globe look', title: 'Switch to the globe look', onClick: go('globe') },
+      { label: 'Minimal look', title: 'Switch to the minimal look', onClick: go('minimal') }] });
+    else this.ui = mountGlobe(root, api, { openUrl, palette: engine.d.palette, footExtras: [
+      { label: '[minimal]', title: 'Switch to the minimal look', onClick: go('minimal') },
+      { label: '[aurora]', title: 'Switch to the Aurora look', onClick: go('aurora') }] });
   }
 
   async onClose() { if (this.ui) this.ui.destroy(); }
@@ -82,12 +90,15 @@ class HiFiTunerPlugin extends Plugin {
   announcePlay() {
     const now = !!this.engine.audio;
     if (now && !this.wasOn) this.app.workspace.trigger('ashotis:playing', 'hifi-tuner');
+    if (!now && this.wasOn) this.app.workspace.trigger('ashotis:stopped', 'hifi-tuner');
     this.wasOn = now;
   }
 
   // The theme glows in the globe's colour way. Writes only when that changes: every write restyles the whole Obsidian window
   syncTheme() {
     const body = document.body, e = this.engine, vars = ['--sa-c1', '--sa-c2', '--sa-c3'];
+    // the Aurora look follows Aurora Clock, so it hands the theme back to the clock instead of colouring it
+    if (e.d.look === 'aurora') { if (this.synced) this.releaseTheme(); return; }
     const on = e.d.themeSync !== false && e.audio && e.station;
     if (!on) {
       // paused or stopped: keep the last colours on the theme; only clear when syncing is switched off
@@ -100,6 +111,14 @@ class HiFiTunerPlugin extends Plugin {
     HFTGlobe.PALETTES[P].theme.split('|').forEach((c, i) => body.style.setProperty(vars[i], `rgb(${c})`));
     const key = P;
     this.syncKey = key; this.synced = true;
+  }
+
+  releaseTheme() {
+    const body = document.body;
+    if ((body.dataset.saOwner || '').startsWith('hifi-tuner:')) delete body.dataset.saOwner;
+    for (const v of ['--sa-c1', '--sa-c2', '--sa-c3']) body.style.removeProperty(v);
+    this.synced = false; this.syncKey = '';
+    this.app.workspace.trigger('ashotis:stopped', 'hifi-tuner');   // lets Aurora Clock take over straight away
   }
 
   // Only one plugin colours the theme at a time: whoever started first keeps it until they stop
@@ -115,6 +134,7 @@ class HiFiTunerPlugin extends Plugin {
     this.engine.d.look = look;
     this.engine.save();
     for (const leaf of this.app.workspace.getLeavesOfType(HFT_VIEW)) if (leaf.view instanceof HFTView) leaf.view.mount();
+    this.syncTheme();
   }
 
   onunload() {
@@ -154,9 +174,9 @@ class HFTSettingTab extends PluginSettingTab {
     const e = this.plugin.engine;
     containerEl.empty();
     new Setting(containerEl).setName('Look')
-      .setDesc('Globe: stations on a wireframe world map. Minimal: plain text in your vault\'s colours.')
-      .addDropdown(dd => dd.addOption('globe', 'Globe').addOption('minimal', 'Minimal')
-        .setValue(e.d.look === 'minimal' ? 'minimal' : 'globe').onChange(v => this.plugin.setLook(v)));
+      .setDesc('Globe: stations on a wireframe world map. Minimal: plain text in your vault\'s colours. Aurora: soft glass and glows that follow the time of day with Aurora Clock.')
+      .addDropdown(dd => dd.addOption('globe', 'Globe').addOption('minimal', 'Minimal').addOption('aurora', 'Aurora')
+        .setValue(['minimal', 'aurora'].includes(e.d.look) ? e.d.look : 'globe').onChange(v => { this.plugin.setLook(v); this.display(); }));
     new Setting(containerEl).setName('EQ / signal level')
       .setDesc('Level meter (minimal: ASCII EQ, globe: signal boxes and pulse). Works on stations that allow it (SomaFM does).')
       .addToggle(t => t.setValue(e.d.eq).onChange(v => { e.d.eq = v; e.save(); }));
@@ -168,7 +188,9 @@ class HFTSettingTab extends PluginSettingTab {
           for (const leaf of this.app.workspace.getLeavesOfType(HFT_VIEW)) { const ui = leaf.view instanceof HFTView && leaf.view.ui; if (ui && ui.setPalette) ui.setPalette(v); }
         }));
     new Setting(containerEl).setName('Colour the Static Aurora theme')
-      .setDesc('While a station plays, the Static Aurora theme glows in the same colours as the globe. Has no effect with other themes.')
+      .setDesc(e.d.look === 'aurora'
+        ? 'Not used with the Aurora look: the player and the theme both follow Aurora Clock.'
+        : 'While a station plays, the Static Aurora theme glows in the same colours as the globe. Has no effect with other themes.')
       .addToggle(t => t.setValue(e.d.themeSync !== false).onChange(v => { e.d.themeSync = v; e.save(); this.plugin.syncTheme(); }));
     new Setting(containerEl).setName('Play alongside other players')
       .setDesc('Off: starting Static FM, Aurora MP3 or MFP Player stops the radio, and the other way round. On: let them play together.')
