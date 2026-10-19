@@ -41,7 +41,7 @@ Marked desktop only, because background audio on mobile is unreliable.
 
 Stations are listener-supported. If you enjoy one, consider supporting it (SomaFM: https://somafm.com/support/).
 
-If you like the plugin, you can [buy me a coffee](https://buymeacoffee.com/ashotis).
+If you like the plugin, you can [buy me a coffee](https://buymeacoffee.com/ashotis). Found a bug or have an idea? [Open an issue](https://github.com/AshOtis/hifi-tuner/issues). It's the best way to reach me, and every report gets read.
 
 ## Building from source
 
