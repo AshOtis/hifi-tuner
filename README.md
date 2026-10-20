@@ -49,6 +49,6 @@ There are no dependencies. Run `python3 build.py` to write `main.js`, `styles.cs
 
 ## License
 
-- Code: [PolyForm Noncommercial 1.0.0](LICENSE) © AshOtis: free for personal and other noncommercial use; selling it or using it commercially needs my permission. Versions before this change were released under MIT.
+- Code: [GNU AGPL v3 or later](LICENSE)  © AshOtis: free for personal and other noncommercial use; selling it or using it commercially needs my permission. Versions before this change were released under MIT.
 - Font: uses [IBM Plex Mono](https://github.com/IBM/plex) if it's installed on your computer, otherwise your Obsidian monospace font
 - Map data: Natural Earth, public domain
