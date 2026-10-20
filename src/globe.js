@@ -18,7 +18,11 @@ class HFTGlobe {
                 theme: '40,210,100|20,150,80|120,230,160' },
     aurora:   { acc: '240,110,170', hi: '255,190,215', halo: '160,90,230',  bg: '32,10,34', deep: '8,4,12', sph: '62,22,70',  sph2: '20,8,30', pan: '22,8,28',  box: '62,22,62', on: '200,65,140',
                 green: '255,205,150', soft: '255,228,205', arc: '255,190,160', yellow: '255,185,92',  idle: '240,170,110', red: '255,85,140',  purple: '190,145,255', orange: '255,150,80',  pink: '255,125,200',
-                theme: '240,110,170|160,90,230|255,170,90' }
+                theme: '240,110,170|160,90,230|255,170,90' },
+    // black and white for monochrome themes: soft greys, the brightest is off-white (never pure white), the playing station is the lightest
+    mono:     { white: '226,226,219', acc: '165,165,162', hi: '212,212,206', halo: '130,130,128', bg: '16,16,16', deep: '0,0,0',  sph: '32,32,31',  sph2: '10,10,10', pan: '12,12,12', box: '36,36,35', on: '110,110,108',
+                green: '188,188,183', soft: '150,150,146', arc: '200,200,194', yellow: '214,214,208', idle: '150,150,146', red: '226,226,219', purple: '128,128,126', orange: '172,172,168', pink: '158,158,154',
+                theme: '200,200,196|140,140,138|90,90,88' }
   };
 
   constructor(canvas, opts = {}) {
@@ -322,14 +326,14 @@ class HFTGlobe {
       const sx = cx + x * R, sy = cy - y * R;
       const isT = this.target && s.st.id === this.target.st.id;
       if (isT) continue;
-      g.fillStyle = this.hover === s ? '#ffffff' : `rgba(${this.T.green},0.85)`;
+      g.fillStyle = this.hover === s ? (this.T.white ? `rgb(${this.T.white})` : '#ffffff') : `rgba(${this.T.green},0.85)`;
       g.fillRect(sx - 1.5, sy - 1.5, 3, 3);
       g.fillStyle = `rgba(${this.T.green},0.18)`;
       g.fillRect(sx - 3.5, sy - 3.5, 7, 7);
     }
     if (this.hover && (!this.target || this.hover.st.id !== this.target.st.id)) {
       const [x, y, z] = this.view(this.hover.lat, this.hover.lon);
-      if (z > 0) this.label(this.hover.st.name.toUpperCase(), cx + x * R + 7, cy - y * R - 6, '#ffffff', 10);
+      if (z > 0) this.label(this.hover.st.name.toUpperCase(), cx + x * R + 7, cy - y * R - 6, (this.T.white ? `rgb(${this.T.white})` : '#ffffff'), 10);
     }
 
     // arc + target lock
@@ -396,7 +400,7 @@ class HFTGlobe {
     if (this.playing && grow >= 1) {
       const i = Math.floor(((ts / 2200) % 1) * N);
       const p = pts[i];
-      if (p && p[2]) { g.beginPath(); g.arc(p[0], p[1], 2.2, 0, Math.PI * 2); g.fillStyle = '#ffffff'; g.fill(); }
+      if (p && p[2]) { g.beginPath(); g.arc(p[0], p[1], 2.2, 0, Math.PI * 2); g.fillStyle = (this.T.white ? `rgb(${this.T.white})` : '#ffffff'); g.fill(); }
     }
   }
 

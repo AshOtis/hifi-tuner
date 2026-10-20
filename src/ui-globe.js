@@ -245,12 +245,12 @@ function mountGlobe(root, api, opts = {}) {
     if (r) { events(r); S = r; paint(); }
   }, 800);
 
-  // Colour way: blue (classic), brown, terminal or aurora. Blue uses the stylesheet's own values.
+  // Colour way: blue (classic), brown, terminal, aurora or mono (black and white). Blue uses the stylesheet's own values.
   function setPalette(name) {
     const T = globe.setPalette(name);
     const c = k => `rgb(${T[k]})`;
     const vars = { '--g-acc': T.acc, '--g-hi': T.hi, '--g-deep': T.deep, '--g-pan': T.pan, '--g-box': T.box, '--g-on': T.on, '--g-red-rgb': T.red,
-      '--g-green': c('green'), '--g-soft': c('soft'), '--g-yellow': c('yellow'), '--g-red': c('red'), '--g-purple': c('purple'), '--g-orange': c('orange'), '--g-pink': c('pink') };
+      '--g-green': c('green'), '--g-soft': c('soft'), '--g-yellow': c('yellow'), '--g-red': c('red'), '--g-purple': c('purple'), '--g-orange': c('orange'), '--g-pink': c('pink'), '--g-white': T.white ? c('white') : '#fff' };
     for (const k in vars) globe.palette === 'blue' ? root.style.removeProperty(k) : root.style.setProperty(k, vars[k]);
   }
   setPalette(opts.palette);

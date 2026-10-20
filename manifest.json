@@ -1,7 +1,7 @@
 {
   "id": "hifi-tuner",
   "name": "Hi-Fi Tuner",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "minAppVersion": "1.4.0",
   "description": "Listen to internet radio on a wireframe globe, in a minimal text view or in the Aurora look, with focus stations, search across 50,000 stations, your own streams, presets and a sleep timer.",
   "author": "AshOtis",

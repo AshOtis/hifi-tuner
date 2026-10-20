@@ -13,7 +13,7 @@ The default **globe** view plots stations on a wireframe world map. When you tun
 - **Add URL:** play any direct stream (MP3, AAC or Ogg).
 - **Presets:** **[mem]** stores the current station, or click **+** on any list. There are commands for presets 1–6.
 - **Sleep timer** and an ASCII EQ.
-- **Globe colours:** four colour ways for the globe look: Blue (classic), Brown, Terminal (green on black) and Aurora (rose and violet). Pick one in settings.
+- **Globe colours:** five colour ways for the globe look: Blue (classic), Brown, Terminal (green on black), Aurora (rose and violet) and Black and white (soft greys and off-white, for monochrome themes). Pick one in settings.
 - **Static Aurora theme:** with the [Static Aurora](https://github.com/AshOtis/aurora-theme) theme installed, the theme glows in the same colours as your chosen globe colour way when you press play. Turn this off with **Colour the Static Aurora theme**.
 - **Takes turns:** pressing play pauses my other players (Static FM, Aurora MP3), and they stop Hi-Fi Tuner. Turn on **Play alongside other players** to mix them.
 - **Status bar** now-playing, media keys, and commands for everything. Set your own hotkeys in **Settings → Hotkeys**.
@@ -49,6 +49,6 @@ There are no dependencies. Run `python3 build.py` to write `main.js`, `styles.cs
 
 ## License
 
-- Code: [PolyForm Noncommercial 1.0.0](LICENSE) © AshOtis: free for personal and other noncommercial use; selling it or using it commercially needs my permission. Versions before this change were released under MIT.
+- Code: [GNU AGPL v3 or later](LICENSE) © AshOtis
 - Font: uses [IBM Plex Mono](https://github.com/IBM/plex) if it's installed on your computer, otherwise your Obsidian monospace font
 - Map data: Natural Earth, public domain

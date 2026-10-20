@@ -175,14 +175,14 @@ class HFTSettingTab extends PluginSettingTab {
     containerEl.empty();
     new Setting(containerEl).setName('Look')
       .setDesc('Globe: stations on a wireframe world map. Minimal: plain text in your vault\'s colours. Aurora: soft glass and glows that follow the time of day with Aurora Clock.')
-      .addDropdown(dd => dd.addOption('globe', 'Globe').addOption('minimal', 'Minimal').addOption('aurora', 'Aurora')
+      .addDropdown(dd => dd.addOption('globe', 'Globe').addOption('minimal', 'Minimal').addOption('aurora', 'Aurora').addOption('mono', 'Black and white')
         .setValue(['minimal', 'aurora'].includes(e.d.look) ? e.d.look : 'globe').onChange(v => { this.plugin.setLook(v); this.display(); }));
     new Setting(containerEl).setName('EQ / signal level')
       .setDesc('Level meter (minimal: ASCII EQ, globe: signal boxes and pulse). Works on stations that allow it (SomaFM does).')
       .addToggle(t => t.setValue(e.d.eq).onChange(v => { e.d.eq = v; e.save(); }));
     new Setting(containerEl).setName('Globe colours')
       .setDesc('Colour way for the globe look.')
-      .addDropdown(dd => dd.addOption('blue', 'Blue').addOption('brown', 'Brown').addOption('terminal', 'Terminal').addOption('aurora', 'Aurora')
+      .addDropdown(dd => dd.addOption('blue', 'Blue').addOption('brown', 'Brown').addOption('terminal', 'Terminal').addOption('aurora', 'Aurora').addOption('mono', 'Black and white')
         .setValue(e.d.palette || 'blue').onChange(v => {
           e.d.palette = v; e.save(); this.plugin.syncTheme();
           for (const leaf of this.app.workspace.getLeavesOfType(HFT_VIEW)) { const ui = leaf.view instanceof HFTView && leaf.view.ui; if (ui && ui.setPalette) ui.setPalette(v); }
