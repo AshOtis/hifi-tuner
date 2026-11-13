@@ -4,7 +4,7 @@
 
 Listen to internet radio in your Obsidian sidebar, on a wireframe globe, in a minimal text view or in the soft Aurora look.
 
-![Skywave globe view](docs/screenshot.png)
+![Skywave: Globe, Aurora, Minimal and Terminal looks](docs/skywave-themes.png)
 
 The default **globe** view plots stations on a wireframe world map. When you tune in, the globe turns to face the station and draws a signal arc from your rough location. Your location comes from your time zone, never GPS. For something calmer, switch to the **minimal** text view, or to the **Aurora** look: soft glass panels, SomaFM's station artwork and slowly drifting glows. With [Aurora Clock](https://github.com/AshOtis/Aurora-Clock) installed, the glows follow the time of day; without it, they're northern-lights green and violet. In the Aurora look the radio leaves the Static Aurora theme to Aurora Clock too, so the player and your theme always match, unless you turn on **Colours from the station name** (the default), in which case each station colours the glows and the theme itself.
 
