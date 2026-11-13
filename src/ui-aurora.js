@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — Aurora look: the Aurora MP3 design for radio.
+/* Skywave — Aurora look: the Aurora MP3 design for radio.
  * mountAurora(root, api, opts) — same api as mountMinimal. The background glows take their colours from
  * Aurora Clock (--clock-c1..3 on <body>) when it is installed, and a northern-lights palette when it isn't. */
 
@@ -19,6 +19,51 @@ const HFA_ICONS = {
   close: '<path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   search: '<circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
 };
+
+
+/* Station colours: a station's name becomes three glow colours, always the same ones for the same name.
+ * A..Z map to 0..255 in steps of 10.2 (A = 0, M = 122, Z = 255), digits 0..9 the same way; spaces and other
+ * characters are skipped. Letters are taken in threes as red, green, blue: first three letters = glow 1,
+ * next three = glow 2, next three = glow 3. A short name wraps round (shifted a letter each time) so the
+ * three glows still differ. Raw letter values are often dark or grey, so each colour is then stretched until
+ * it glows (brightest channel at least ~200, colours pushed apart a little). */
+function hftNameColours(name) {
+  const v = [];
+  for (const ch of String(name || '').toUpperCase()) {
+    if (ch >= 'A' && ch <= 'Z') v.push((ch.charCodeAt(0) - 65) * 10.2);
+    else if (ch >= '0' && ch <= '9') v.push((ch.charCodeAt(0) - 48) * 28.3);
+  }
+  if (!v.length) return HFA_DEFAULT.map(c => c.slice());
+  const n = v.length;
+  return [0, 1, 2].map(i => {
+    const c = [0, 1, 2].map(j => v[(n >= 9 ? i * 3 + j : n >= 5 ? i * 4 + j : i + j) % n]);
+    if (!Math.max(...c)) c.fill(40);                                         // all A's: avoid black
+    const mn = Math.min(...c), mx = Math.max(...c);
+    const mid = (mn + mx) / 2, spread = mx - mn < 90 ? 1.5 : 1.1;           // pull flat greys apart
+    let o = c.map(x => mid + (x - mid) * spread);
+    const m2 = Math.max(...o, 1), k = 200 / m2;                                // lift dark ones to glow
+    o = o.map(x => Math.max(0, Math.min(255, Math.round(k > 1 ? x * k : x))));
+    if (Math.max(...o) - Math.min(...o) < 40) o[i] = Math.max(0, o[i] - 80);   // never leave a grey
+    return o;
+  });
+}
+const hftMix = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t));
+const hftStr = c => c.map(v => Math.round(v)).join(',');
+
+// A whole globe colour way built from a station's name: the glows give the line, halo and background colours
+function hftStationPalette(name) { return hftPaletteFrom(hftNameColours(name)); }
+// ...or from any three glow colours (the Aurora look's tile globe uses the glows' own colours)
+function hftPaletteFrom(cols) {
+  const [c1, c2, c3] = cols, W = [255, 255, 255], k = (c, f) => c.map(v => v * f);
+  const base = HFTGlobe.PALETTES.aurora;
+  return Object.assign({}, base, {
+    acc: hftStr(c1), hi: hftStr(hftMix(c1, W, 0.5)), halo: hftStr(c2),
+    bg: hftStr(k(c1, 0.2)), deep: hftStr(k(c1, 0.06)), sph: hftStr(k(c1, 0.42)), sph2: hftStr(k(c3, 0.16)),
+    pan: hftStr(k(c1, 0.09)), box: hftStr(k(c2, 0.26)), on: hftStr(k(c1, 0.8)),
+    green: hftStr(hftMix(c2, W, 0.45)), soft: hftStr(hftMix(c2, W, 0.75)), arc: hftStr(hftMix(c3, W, 0.4)),
+    theme: [hftStr(c1), hftStr(c2), hftStr(k(c3, 0.75))].join('|')
+  });
+}
 
 // northern lights: what the glows show when Aurora Clock isn't installed
 const HFA_DEFAULT = [[52, 211, 153], [20, 184, 166], [124, 58, 237]];
@@ -59,7 +104,7 @@ function mountAurora(root, api, opts = {}) {
 
   // header
   const head = h('div', 'hfa-head', null, scroll);
-  h('div', 'hfa-title', 'Hi-Fi Tuner', head);
+  h('div', 'hfa-title', 'Skywave', head);
   const headSub = h('div', 'hfa-sub', '', head);
 
   // now playing
@@ -67,6 +112,17 @@ function mountAurora(root, api, opts = {}) {
   const art = h('div', 'hfa-art', null, now);
   const artImg = h('img', null, null, art); artImg.alt = ''; artImg.draggable = false; artImg.hidden = true;
   const artIco = svg('radio', 40); art.appendChild(artIco);
+  // The globe takes the artwork's place (most stations have none, or a tiny logo). It wears the glows' colours.
+  let tileGlobe = null;
+  if (opts.artGlobe !== false) {
+    art.classList.add('has-globe');
+    const cv = h('canvas', 'hfa-globe', null, art);
+    tileGlobe = new HFTGlobe(cv, { mini: true });
+    tileGlobe.setPalette(hftPaletteFrom(HFA_DEFAULT));
+    artIco.style.display = 'none';
+    tileGlobe.start();
+    api.cmd('land').then(land => { if (land && tileGlobe) tileGlobe.setLand(land); });
+  }
   artImg.addEventListener('error', () => { artImg.hidden = true; artIco.style.display = ''; });
   artImg.addEventListener('load', () => { artIco.style.display = 'none'; });
   const info = h('div', 'hfa-now-info', null, now);
@@ -104,7 +160,9 @@ function mountAurora(root, api, opts = {}) {
   vol.addEventListener('change', () => { dragging = false; });
 
   // tabs
-  const tabs = h('div', 'hfa-tabs', null, scroll);
+  const tabsRow = h('div', 'hfa-tabsrow', null, scroll);
+  const tabs = h('div', 'hfa-tabs', null, tabsRow);
+  if (opts.onLook) { const bl = h('button', 'hfa-btn hft-cycle-round', '◐', tabsRow); bl.title = 'Current look: Aurora. Click for the next look (Globe, Aurora, Minimal)'; bl.addEventListener('click', opts.onLook); }
   const tabBtns = {};
   for (const [id, label] of [['presets', 'Presets'], ['focus', 'Focus'], ['search', 'Search'], ['add', 'Add']]) {
     tabBtns[id] = h('button', 'hfa-btn hfa-tab', label, tabs);
@@ -134,7 +192,8 @@ function mountAurora(root, api, opts = {}) {
     tSub.textContent = subLine;
     tMeta.textContent = st ? [st.codec, st.bitrate ? st.bitrate + 'K' : '', st.source === 'soma' ? 'SomaFM' : st.source === 'custom' ? 'Your stream' : ''].filter(Boolean).join(' · ') : '';
 
-    const img = st && st.image ? st.image : '';
+    const img = !tileGlobe && st && st.image ? st.image : '';
+    if (tileGlobe) { tileGlobe.setStations(S.presets || [], st); tileGlobe.setPlaying(!!S.playing); }
     if (artImg.dataset.src !== img) {
       artImg.dataset.src = img;
       if (img) { artImg.hidden = false; artImg.src = img; } else { artImg.hidden = true; artImg.removeAttribute('src'); artIco.style.display = ''; }
@@ -242,7 +301,8 @@ function mountAurora(root, api, opts = {}) {
   function readClock() {
     const cs = getComputedStyle(document.body);
     const c = [1, 2, 3].map(i => parse(cs.getPropertyValue('--clock-c' + i)));
-    target = c.every(Boolean) ? c : HFA_DEFAULT;
+    // Station colours: the station's name picks the glows instead of the clock
+    target = opts.stationColours && S && S.station ? hftNameColours(S.station.name) : c.every(Boolean) ? c : HFA_DEFAULT;
   }
   function stepSky(dt) {
     const on = S && S.on && !S.buffering;
@@ -264,6 +324,7 @@ function mountAurora(root, api, opts = {}) {
     // the station tile picks up the same colours
     art.style.setProperty('--hfa-a', `rgb(${cols[0].map(v => v | 0).join(',')})`);
     art.style.setProperty('--hfa-b', `rgb(${cols[2].map(v => v | 0).join(',')})`);
+    if (tileGlobe) { tileGlobe.setPalette(hftPaletteFrom(cols)); tileGlobe.setLevel(level); }
   }
 
   // one loop: sky at ~25 fps, meter at ~30 fps while it's showing; nothing while hidden
@@ -272,7 +333,7 @@ function mountAurora(root, api, opts = {}) {
     if (stopped) return;
     raf = requestAnimationFrame(frame);
     if (document.hidden || !root.isConnected) return;
-    if (ts - lastRead > 5000) { lastRead = ts; readClock(); }
+    if (ts - lastRead > (opts.stationColours ? 1000 : 5000)) { lastRead = ts; readClock(); }
     if (ts - lastSky >= 40) { const dt = Math.min(0.2, (ts - (lastSky || ts)) / 1000); lastSky = ts; stepSky(dt); }
     if (busy || !S || meter.hidden) { level *= 0.95; return; }
     busy = true;
@@ -296,6 +357,6 @@ function mountAurora(root, api, opts = {}) {
 
   return {
     refresh: async () => { S = await api.cmd('state'); paint(); },
-    destroy: () => { stopped = true; clearInterval(poll); cancelAnimationFrame(raf); }
+    destroy: () => { stopped = true; clearInterval(poll); cancelAnimationFrame(raf); if (tileGlobe) { tileGlobe.stop(); tileGlobe = null; } }
   };
 }

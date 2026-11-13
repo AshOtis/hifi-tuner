@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — shared radio engine (used by the Firefox add-on and the Obsidian plugin).
+/* Skywave — shared radio engine (used by the Firefox add-on and the Obsidian plugin).
  * The host supplies: load(), save(data), http(url) -> text, onChange(). */
 
 const HFT_SOMA_FOCUS = [
@@ -404,8 +404,8 @@ class HFTEngine {
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: this.nowPlaying || this.station.name,
-        artist: this.nowPlaying ? this.station.name : 'Hi-Fi Tuner',
-        album: 'Hi-Fi Tuner'
+        artist: this.nowPlaying ? this.station.name : 'Skywave',
+        album: 'Skywave'
       });
     } catch (_) {}
   }
@@ -457,7 +457,11 @@ class HFTEngine {
       case 'sleep': this.cycleSleep(); break;
       case 'face': this.d.face = HFT_FACES[(HFT_FACES.indexOf(this.d.face) + 1) % HFT_FACES.length]; this.save(); break;
       case 'display': this.d.display = HFT_DISPLAYS[(HFT_DISPLAYS.indexOf(this.d.display) + 1) % HFT_DISPLAYS.length]; this.save(); break;
-      case 'eq': this.d.eq = !this.d.eq; this.save(); break;
+      case 'eq':
+        this.d.eq = !this.d.eq; this.save();
+        // the level meter only works on audio that was opened with it: re-tune the playing station so switching EQ on takes effect now
+        if (this.d.eq && this.audio && !this.audio._viz && this.station) this.play(this.station);
+        break;
       case 'reloadFocus': await this.loadFocus(); break;
       case 'viz': return this.vizFrame(a.cols);
       case 'look': this.d.look = a.value; this.save(); break;

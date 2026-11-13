@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — wireframe "war room" globe on a canvas.
+/* Skywave — wireframe "war room" globe on a canvas.
  * Orthographic projection, see-through mesh, glowing coastlines, station blips,
  * a pulsing lock on the playing station and an animated arc from home to it. */
 
@@ -51,6 +51,7 @@ class HFTGlobe {
   /* ---------- colour ways ----------
    * Same globe, different paint. Each palette is a set of "r,g,b" strings. */
   setPalette(name) {
+    if (name && typeof name === 'object') { this.T = name; this.palette = 'station'; return this.T; }   // a palette built from a station name
     const P = HFTGlobe.PALETTES[name] ? name : 'blue';
     this.T = HFTGlobe.PALETTES[P];
     this.palette = P;
@@ -229,7 +230,7 @@ class HFTGlobe {
     }
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w; this.h = h;
-    this.R = Math.min(w * 0.46, h * 0.44) * (this.zoom || 1);
+    this.R = this.opts.mini ? Math.min(w, h) * 0.4 : Math.min(w * 0.46, h * 0.44) * (this.zoom || 1);
     this.cx = w / 2; this.cy = h * 0.5;
     return true;
   }
@@ -284,9 +285,12 @@ class HFTGlobe {
     const lvl = this.playing ? this.level : 0;
 
     // backdrop
-    const bg = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, `rgb(${this.T.bg})`); bg.addColorStop(1, `rgb(${this.T.deep})`);
-    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    if (this.opts.mini) g.clearRect(0, 0, w, h);          // tile globe: no backdrop square, just the globe
+    else {
+      const bg = g.createRadialGradient(cx, cy, R * 0.2, cx, cy, Math.max(w, h) * 0.75);
+      bg.addColorStop(0, `rgb(${this.T.bg})`); bg.addColorStop(1, `rgb(${this.T.deep})`);
+      g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    }
 
     // atmosphere + sphere
     const halo = g.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.18);
@@ -407,6 +411,7 @@ class HFTGlobe {
   textW(t, size) { this.g.font = `${size}px "HFT Mono", ui-monospace, monospace`; return this.g.measureText(t).width; }
 
   label(text, x, y, color, size, bold) {
+    if (this.opts.mini) return;                 // the small tile globe has no room for text
     const g = this.g;
     g.font = `${bold ? '600 ' : ''}${size}px "HFT Mono", ui-monospace, monospace`;
     g.fillStyle = 'rgba(0,0,20,0.55)';

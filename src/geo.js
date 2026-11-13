@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — geography helpers for the globe.
+/* Skywave — geography helpers for the globe.
  * Low-poly coastlines (hand-drawn, built in) are used until the detailed
  * Natural Earth 110m land outline has been fetched. */
 

@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — minimal text UI (MFP-style), uses the host's own colours and font.
+/* Skywave — minimal text UI (MFP-style), uses the host's own colours and font.
  * mountMinimal(root, api, opts) — same api as mountTuner. Plain text plus an optional ASCII EQ. */
 
 function mountMinimal(root, api, opts = {}) {
@@ -59,6 +59,7 @@ function mountMinimal(root, api, opts = {}) {
   for (const id of ['presets', 'focus', 'search', 'add']) {
     tabBtns[id] = b(tabs, id, null, () => { tab = id; listKey = ''; paint(); });
   }
+  if (opts.onLook) b(tabs, '[minimal]', 'Current look: Minimal. Click for the next look (Globe, Aurora, Minimal)', opts.onLook, 'hft-cycle');
   const tools = h('div', 'hfm-tools', null, root);
   const list = h('ol', 'hfm-list', null, root);
   const msg = h('div', 'hfm-faint hfm-msg', null, root);

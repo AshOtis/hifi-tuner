@@ -56,6 +56,8 @@
   color: rgba(255, 255, 255, .85);
 }
 .hfa-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hfa-art.has-globe { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+.hfa-art canvas.hfa-globe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
 .hfa-now-info { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .hfa-now-title { font-size: 18px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .hfa-now-song { font-size: 14px; opacity: .9; overflow-wrap: anywhere; }
@@ -142,3 +144,10 @@
   .hfa .hfa-btn.hfa-tab { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .hfa .hfa-btn.hfa-big.is-busy { animation: none; } }
+
+/* [look] button: beside the tabs, same spot in every look */
+.hfg-tabs .hft-cycle, .hfm-tabs .hft-cycle { margin-left: auto; }
+.hfa-tabsrow { display: flex; align-items: center; gap: 8px; }
+.hfa-tabsrow .hfa-tabs { flex: 1; min-width: 0; }
+.hfa .hfa-btn.hft-cycle-round { flex: none; width: 36px; height: 36px; border-radius: 50%; font-size: 17px; line-height: 1; padding: 0; background: var(--glass); color: var(--soft, #cfd3da); display: grid; place-items: center; }
+.hfa .hfa-btn.hft-cycle-round:hover { color: var(--ink, #fff); }

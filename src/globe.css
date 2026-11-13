@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — globe ("war room") look */
+/* Skywave — globe ("war room") look */
 .hfg {
   --g-acc: 90,110,255; --g-hi: 150,165,255; --g-deep: 0,0,12; --g-pan: 4,8,40; --g-box: 10,16,70; --g-on: 47,69,255;
   --g-bg: rgb(var(--g-deep)); --g-panel: rgba(var(--g-pan),.92); --g-line: rgba(var(--g-acc),.28);
@@ -98,3 +98,11 @@
   .hfg-box { width: 13px; height: 13px; line-height: 11px; font-size: 9px; }
   .hfg-name { font-size: 13px; }
 }
+
+/* globe colour dots: bottom right of the globe, small, fade in when the mouse is over the globe */
+.hfg-pal { position: absolute; right: 10px; bottom: 12px; z-index: 3; display: flex; flex-direction: column; gap: 7px; opacity: 0; transition: opacity .3s ease; }
+.hfg-stage:hover .hfg-pal, .hfg-pal:hover, .hfg-pal:focus-within { opacity: 1; }
+.hfg-pal .hfg-pdot { all: unset; box-sizing: border-box; cursor: pointer; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--dot, #888); opacity: .8; }
+.hfg-pal .hfg-pdot:hover { opacity: 1; }
+.hfg-pal .hfg-pdot.is-on { background: var(--dot, #888); opacity: 1; box-shadow: 0 0 6px var(--dot, #888); }
+.hfg-hud { padding-right: 24px; box-sizing: border-box; }

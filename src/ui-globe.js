@@ -1,4 +1,4 @@
-/* Hi-Fi Tuner — "war room" globe UI.
+/* Skywave — "war room" globe UI.
  * mountGlobe(root, api, opts) — same api as mountTuner / mountMinimal. */
 
 function mountGlobe(root, api, opts = {}) {
@@ -45,6 +45,16 @@ function mountGlobe(root, api, opts = {}) {
   const boxes = [5, 4, 3, 2, 1].map(n => h('span', 'hfg-box', String(n), sig));
   const clock = h('span', 'hfg-clock', '00:00:00', top);
 
+  // colour ways: dots at the bottom right of the globe
+  const pal = h('div', 'hfg-pal', null, stage);
+  const palDots = {};
+  for (const [id, label, dot] of [['mono', 'Black and white', '#b4b4b0'], ['aurora', 'Aurora', '#f06eaa'], ['blue', 'Blue', '#4f7dff'], ['terminal', 'Terminal', '#3cdc6e'], ['brown', 'Brown', '#d69650']]) {
+    const d = h('button', 'hfg-pdot', null, pal);
+    d.style.setProperty('--dot', dot);
+    d.title = 'Globe colours: ' + label;
+    d.addEventListener('click', e => { e.stopPropagation(); if (opts.onPalette) opts.onPalette(id); else setPalette(id); });
+    palDots[id] = d;
+  }
   const hud = h('div', 'hfg-hud', null, stage);
   const hName = h('div', 'hfg-name', null, hud);
   const hNow = h('div', 'hfg-nowp', null, hud);
@@ -69,6 +79,7 @@ function mountGlobe(root, api, opts = {}) {
   for (const id of ['presets', 'focus', 'search', 'add']) {
     tabBtns[id] = b(tabs, id.toUpperCase(), null, () => { tab = id; listKey = ''; paint(); });
   }
+  if (opts.onLook) b(tabs, '[globe]', 'Current look: Globe. Click for the next look (Globe, Aurora, Minimal)', opts.onLook, 'hft-cycle');
   const tools = h('div', 'hfg-tools', null, root);
   const list = h('ol', 'hfg-list', null, root);
   const msg = h('div', 'hfg-msg', null, root);
@@ -233,6 +244,7 @@ function mountGlobe(root, api, opts = {}) {
     prev = S;
     if (S.playing) tunedAt = Date.now();
     note('Receiver ready');
+    applyStation(S);
     paint();
     globe.start();
     raf = requestAnimationFrame(levelLoop);
@@ -242,7 +254,7 @@ function mountGlobe(root, api, opts = {}) {
   const poll = setInterval(async () => {
     if (stopped) return;
     const r = await api.cmd('state');
-    if (r) { events(r); S = r; paint(); }
+    if (r) { events(r); S = r; applyStation(r); paint(); }
   }, 800);
 
   // Colour way: blue (classic), brown, terminal, aurora or mono (black and white). Blue uses the stylesheet's own values.
@@ -252,8 +264,18 @@ function mountGlobe(root, api, opts = {}) {
     const vars = { '--g-acc': T.acc, '--g-hi': T.hi, '--g-deep': T.deep, '--g-pan': T.pan, '--g-box': T.box, '--g-on': T.on, '--g-red-rgb': T.red,
       '--g-green': c('green'), '--g-soft': c('soft'), '--g-yellow': c('yellow'), '--g-red': c('red'), '--g-purple': c('purple'), '--g-orange': c('orange'), '--g-pink': c('pink'), '--g-white': T.white ? c('white') : '#fff' };
     for (const k in vars) globe.palette === 'blue' ? root.style.removeProperty(k) : root.style.setProperty(k, vars[k]);
+    for (const id in palDots) palDots[id].classList.toggle('is-on', id === globe.palette);
   }
   setPalette(opts.palette);
+
+  // Station look: every station gets its own colours, made from its name
+  let stKey = '';
+  function applyStation(n) {
+    if (!opts.stationColours || !n || !n.station || n.station.name === stKey) return;
+    stKey = n.station.name;
+    setPalette(hftStationPalette(stKey));
+  }
+  applyStation(S);
 
   return {
     setPalette,
